@@ -1,0 +1,8 @@
+[package]
+name = "migaton"
+version = "0.1.0"
+authors = ["Frankie Baffa <frankie.baffa@gentryhealthservices.com>"]
+edition = "2018"
+[dependencies.sqlite]
+version = "0.26"
+

@@ -1,2 +1,1 @@
-drop table if exists Tests;
-
+drop table Tests;

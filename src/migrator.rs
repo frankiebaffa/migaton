@@ -37,6 +37,15 @@ impl MigratorAccess for Migrator {
     }
 }
 impl Migrator {
+    /// Retrieves the number of migrations skipped due to unpassed checks (not innately an issue)
+    pub fn get_skip_count(&self) -> usize {
+        return self.skip_count.clone();
+    }
+    /// Retrieves whether or not the passed number matches the skip count
+    pub fn chk_skip_count(&self, chk: usize) -> bool {
+        return self.skip_count.eq(&chk);
+    }
+    /// Migrate upwards and downwards on a database stored in memory (used for testing)
     pub fn run_from_memory<'a>(migrations_path: &'a str) -> Result<usize, String> {
         let mut m = match Migrator::init(ConnectionType::Memory) {
             Ok(m) => m,
@@ -48,6 +57,8 @@ impl Migrator {
         }
         return m.downward_migration(migrations_path);
     }
+    /// Safely attempt to migrate upward. Migrates up and down on a SQLite in-memory database, then
+    /// attempts to migrate upward on a copy of the DB file, then migrates the DB file
     pub fn do_up<'a>(db_path: &'a str, migrations_path: &'a str) -> Result<usize, String> {
         match Migrator::run_from_memory(migrations_path) {
             Ok(_) => {},
@@ -64,6 +75,7 @@ impl Migrator {
         }
         return m.upward_migration(migrations_path);
     }
+    /// Attempts to migrate upwards with no testing (not recommended)
     pub fn do_up_no_test<'a>(db_path: &'a str, migrations_path: &'a str) -> Result<usize, String> {
         let mut m = match Migrator::init(ConnectionType::DbFile(db_path)) {
             Ok(m) => m,
@@ -71,6 +83,8 @@ impl Migrator {
         };
         return m.upward_migration(migrations_path);
     }
+    /// Safely attempt to migrate downward. Migrates up and down on a SQLite in-memory database, then
+    /// attempts to migrate downward on a copy of the DB file, then migrates the DB file
     pub fn do_down<'a>(db_path: &'a str, migrations_path: &'a str) -> Result<usize, String> {
         match Migrator::run_from_memory(migrations_path) {
             Ok(_) => {},
@@ -87,6 +101,7 @@ impl Migrator {
         }
         return m.downward_migration(migrations_path);
     }
+    /// Attempts to migrate downwards with no testing (not recommended)
     pub fn do_down_no_test<'a>(db_path: &'a str, migrations_path: &'a str) -> Result<usize, String> {
         let mut m = match Migrator::init(ConnectionType::DbFile(db_path)) {
             Ok(m) => m,
@@ -94,7 +109,6 @@ impl Migrator {
         };
         return m.downward_migration(migrations_path);
     }
-    /// Initializes a new Migrator object
     fn init<'b>(c_type: ConnectionType) -> Result<Migrator, String> {
         let c = match Self::create_connection(c_type.clone()) {
             Ok(c) => c,

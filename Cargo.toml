@@ -5,4 +5,5 @@ authors = ["Frankie Baffa <frankie.baffa@gentryhealthservices.com>"]
 edition = "2018"
 [dependencies.rusqlite]
 version = "0.25"
+features = ["bundled"]
 

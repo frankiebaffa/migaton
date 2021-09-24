@@ -23,7 +23,6 @@ impl<T> DoMigrations for T where T: MigratorAccess {
         };
         let db_name = c_type.get_db_name();
         let attach = format!("attach '{}' as {}", c_type.get_full_db_path(), db_name);
-        println!("{}", attach);
         match conn.execute(attach.as_str(), []) {
             Ok(_) => {},
             Err(e) => panic!("{}", e),
@@ -75,11 +74,6 @@ impl<T> DoMigrations for T where T: MigratorAccess {
             passing_int = 0;
         }
         for migration in migrations {
-            let mig_str = match direction {
-                MigrationDirection::Up => &migration.up,
-                MigrationDirection::Down => &migration.down,
-            };
-            println!("Running check: {}", &migration.check);
             let passing_check = match Self::query_chk(&self.access_connection(), &migration) {
                 Ok(i) => i,
                 Err(e) => return Err(e),
@@ -92,7 +86,6 @@ impl<T> DoMigrations for T where T: MigratorAccess {
                 Ok(tx) => tx,
                 Err(e) => return Err(format!("Failed to create transaction from connection: {}", e)),
             };
-            println!("Doing {}", mig_str);
             match Self::run_migration(&mut tx, &migration, &direction) {
                 Ok(_) => {},
                 Err(e) => return Err(e),

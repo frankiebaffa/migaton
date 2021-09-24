@@ -1,5 +1,4 @@
 use super::{
-    ConnectionType,
     DoMigrations,
     MigrationDirection,
     Migration,
@@ -14,21 +13,6 @@ pub trait MigratorAccess {
     fn inc_skip_count(&mut self);
 }
 impl<T> DoMigrations for T where T: MigratorAccess {
-    /// Creates a connection to a SQLite database
-    fn create_connection<'a>(c_type: ConnectionType) -> Result<Connection, String> {
-        let db_file = c_type.get_full_db_path();
-        let conn = match rusqlite::Connection::open(&db_file) {
-            Ok(c) => c,
-            Err(e) => return Err(format!("Failed to open connection to {}: {}", db_file, e)),
-        };
-        let db_name = c_type.get_db_name();
-        let attach = format!("attach '{}' as {}", c_type.get_full_db_path(), db_name);
-        match conn.execute(attach.as_str(), []) {
-            Ok(_) => {},
-            Err(e) => panic!("{}", e),
-        };
-        return Ok(conn);
-    }
     /// Retrieves the skip count
     fn get_skip_count(&mut self) -> usize {
         return self.access_skip_count().clone();

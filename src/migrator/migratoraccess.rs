@@ -15,16 +15,20 @@ pub trait MigratorAccess {
 }
 impl<T> DoMigrations for T where T: MigratorAccess {
     /// Creates a connection to a SQLite database
-    fn create_connection(c_type: ConnectionType) -> Result<Connection, String> {
-        let c_str: &str = match c_type {
-            ConnectionType::Memory => ":memory:",
-            ConnectionType::DbFile(c_str) => c_str,
-            ConnectionType::SafeDbFile(c_str, _) => c_str,
+    fn create_connection<'a>(c_type: ConnectionType) -> Result<Connection, String> {
+        let db_file = c_type.get_full_db_path();
+        let conn = match rusqlite::Connection::open(&db_file) {
+            Ok(c) => c,
+            Err(e) => return Err(format!("Failed to open connection to {}: {}", db_file, e)),
         };
-        match Connection::open(c_str) {
-            Ok(c) => return Ok(c),
-            Err(e) => return Err(format!("Failed to open connection to {}: {}", c_str, e)),
+        let db_name = c_type.get_db_name();
+        let attach = format!("attach '{}' as {}", c_type.get_full_db_path(), db_name);
+        println!("{}", attach);
+        match conn.execute(attach.as_str(), []) {
+            Ok(_) => {},
+            Err(e) => panic!("{}", e),
         };
+        return Ok(conn);
     }
     /// Retrieves the skip count
     fn get_skip_count(&mut self) -> usize {
@@ -71,6 +75,11 @@ impl<T> DoMigrations for T where T: MigratorAccess {
             passing_int = 0;
         }
         for migration in migrations {
+            let mig_str = match direction {
+                MigrationDirection::Up => &migration.up,
+                MigrationDirection::Down => &migration.down,
+            };
+            println!("Running check: {}", &migration.check);
             let passing_check = match Self::query_chk(&self.access_connection(), &migration) {
                 Ok(i) => i,
                 Err(e) => return Err(e),
@@ -83,6 +92,7 @@ impl<T> DoMigrations for T where T: MigratorAccess {
                 Ok(tx) => tx,
                 Err(e) => return Err(format!("Failed to create transaction from connection: {}", e)),
             };
+            println!("Doing {}", mig_str);
             match Self::run_migration(&mut tx, &migration, &direction) {
                 Ok(_) => {},
                 Err(e) => return Err(e),

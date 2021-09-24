@@ -1,4 +1,4 @@
-create table TForeigns
+create table Test.TForeigns
 	(
 		Id integer primary key autoincrement
 	,	Test_Id integer not null

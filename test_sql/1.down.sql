@@ -1,1 +1,1 @@
-drop table Tests;
+drop table Test.Tests;

@@ -1,1 +1,1 @@
-drop table TForeigns;
+drop table Test.TForeigns;

@@ -1,5 +1,5 @@
 ordering: [
-  create_tests,
-  create_tforeigns,
-  alter_tforeigns_add_name,
+  tbl_tests,
+  tbl_tforeigns,
+  tbl_tforeigns_add_name,
 ]

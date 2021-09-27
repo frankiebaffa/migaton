@@ -56,12 +56,11 @@ impl Migration {
         let mut migrations: Vec<Migration> = Vec::new();
         let mut index = 0;
         for order in config.ordering {
-            index = index + 1;
-            let up_file_name = format!("{}/{}.{}", mig_path, order, Self::UP_END);
+            let up_file_name = format!("{}/{}/{}", mig_path, order, Self::UP_END);
             let up_exists = Path::new(&up_file_name).exists();
-            let down_file_name = format!("{}/{}.{}", mig_path, order, Self::DOWN_END);
+            let down_file_name = format!("{}/{}/{}", mig_path, order, Self::DOWN_END);
             let down_exists = Path::new(&down_file_name).exists();
-            let chk_file_name = format!("{}/{}.{}", mig_path, order, Self::CHK_END);
+            let chk_file_name = format!("{}/{}/{}", mig_path, order, Self::CHK_END);
             let chk_exists = Path::new(&chk_file_name).exists();
             if !up_exists || !down_exists || !chk_exists {
                 return Err(format!("Incomplete set for migration {}", order));
@@ -94,6 +93,7 @@ impl Migration {
                 Err(e) => return Err(format!("Failed to read {} to string: {}", chk_file_name, e)),
             };
             migrations.push(Migration::new(index, order, up_script, down_script, chk_script));
+            index = index + 1;
         }
         return Ok(migrations);
     }

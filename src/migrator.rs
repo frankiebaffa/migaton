@@ -16,6 +16,10 @@ pub struct Migrator<'m> {
     skip_count: usize,
 }
 impl<'m> Migrator<'m> {
+    pub fn close(self) {
+        drop(self.connection);
+        return;
+    }
     fn inc_skip_count(&mut self) {
         self.skip_count = self.skip_count + 1;
     }
@@ -68,6 +72,10 @@ impl<'m> Migrator<'m> {
             Ok(_) => {},
             Err(e) => return Err(format!("{}", e)),
         }
+        match m.connection.close() {
+            Ok(_) => {},
+            Err((_, e)) => return Err(format!("{}", e)),
+        }
         if skips > 0 {
             return Err(format!("Memory skips should always be 0, returned {}", skips));
         }
@@ -100,7 +108,7 @@ impl<'m> Migrator<'m> {
         return m.downward_migration(migrations_path, false);
     }
     fn init(db_path: &'m str, db_name: &'m str) -> Result<Migrator<'m>, String> {
-        let c = match Connection::open(":memory:") {
+        let c = match Connection::open("") {
             Ok(c) => c,
             Err(e) => return Err(format!("{}", e)),
         };
@@ -183,9 +191,16 @@ impl<'m> Migrator<'m> {
                 Ok(i) => i,
                 Err(e) => return Err(e),
             };
-            if !passing_int.eq(&passing_check) {
+            let do_run = if direction.eq(&MigrationDirection::Down) && passing_check.ge(&passing_int) {
+                true
+            } else if direction.eq(&MigrationDirection::Up) && passing_check.eq(&passing_int) {
+                true
+            } else {
+                false
+            };
+            if !do_run {
                 self.inc_skip_count();
-                println!("Skipping {}", migration.file_name);
+                println!("Skipping {}. Result {}", migration.file_name, passing_check);
                 continue;
             }
             println!("Running '{}'", migration.file_name);
@@ -231,6 +246,7 @@ impl<'m> Migrator<'m> {
             Ok(down_skips) => down_skips,
             Err(e) => return Err(e),
         };
+        m.close();
         match remove_file(&format!("{}/{}.db", db_path, db_name)) {
             Ok(_) => {},
             Err(e) => panic!("{}", e),

@@ -64,8 +64,10 @@ impl<T> DoMigrations for T where T: MigratorAccess {
             };
             if !passing_int.eq(&passing_check) {
                 self.inc_skip_count();
+                println!("Skipping {}", migration.file_name);
                 continue;
             }
+            println!("Running '{}'", migration.file_name);
             let mut tx = match self.access_connection().transaction() {
                 Ok(tx) => tx,
                 Err(e) => return Err(format!("Failed to create transaction from connection: {}", e)),

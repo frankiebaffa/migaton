@@ -1,13 +1,15 @@
+use std::io::Read;
 use super::super::{
     File,
     Path,
     PathBuf,
-    Read,
 };
 /// A database migration containing upward, downward, and check scripts
 pub struct Migration {
     /// A number denoting the ordering of the migration
     pub number: i64,
+    /// The file name
+    pub file_name: String,
     /// An upward migration script
     pub up: String,
     /// A downward migration script
@@ -15,33 +17,54 @@ pub struct Migration {
     /// A check migration script
     pub check: String,
 }
+#[derive(serde::Deserialize)]
+struct ConfigFile {
+    ordering: Vec<String>,
+}
 impl Migration {
     /// Creates a new migration
-    fn new<'a>(number: i64, up: String, down: String, check: String) -> Migration {
-        return Migration { number, up, down, check, };
+    fn new<'a>(number: i64, file_name: String, up: String, down: String, check: String) -> Migration {
+        return Migration { number, file_name, up, down, check, };
     }
     const UP_END: &'static str = "up.sql";
     const DOWN_END: &'static str = "down.sql";
     const CHK_END: &'static str = "chk.sql";
+    const CONFIG_FILE: &'static str = "migaton.yml";
     /// Retrieves all migrations from the given path
     pub fn get_all(mig_path: String) -> Result<Vec<Migration>, String> {
         let p = PathBuf::from(mig_path.clone());
         if !p.is_dir() {
             return Err(format!("Migration directory {} does not exist", mig_path));
         }
+        let config_file_path = PathBuf::from(format!("{}/{}", mig_path.clone(), Self::CONFIG_FILE));
+        if !config_file_path.is_file() {
+            return Err(format!("Migration config file {} does not exist", format!("{}/{}", mig_path.clone(), Self::CONFIG_FILE)));
+        }
+        let mut config_file = match File::open(config_file_path) {
+            Ok(cf) => cf,
+            Err(e) => return Err(format!("{}", e)),
+        };
+        let mut config_string = String::new();
+        match config_file.read_to_string(&mut config_string) {
+            Ok(_) => {},
+            Err(e) => return Err(format!("{}", e)),
+        };
+        let config: ConfigFile = match serde_yaml::from_str(config_string.as_str()) {
+            Ok(c) => c,
+            Err(e) => return Err(format!("{}", e)),
+        };
         let mut migrations: Vec<Migration> = Vec::new();
-        let mut index = 1;
-        loop {
-            let up_file_name = format!("{}/{}.{}", mig_path, index, Self::UP_END);
+        let mut index = 0;
+        for order in config.ordering {
+            index = index + 1;
+            let up_file_name = format!("{}/{}.{}", mig_path, order, Self::UP_END);
             let up_exists = Path::new(&up_file_name).exists();
-            let down_file_name = format!("{}/{}.{}", mig_path, index, Self::DOWN_END);
+            let down_file_name = format!("{}/{}.{}", mig_path, order, Self::DOWN_END);
             let down_exists = Path::new(&down_file_name).exists();
-            let chk_file_name = format!("{}/{}.{}", mig_path, index, Self::CHK_END);
+            let chk_file_name = format!("{}/{}.{}", mig_path, order, Self::CHK_END);
             let chk_exists = Path::new(&chk_file_name).exists();
-            if !up_exists && !down_exists && !chk_exists {
-                return Ok(migrations);
-            } else if !up_exists || !down_exists || !chk_exists {
-                return Err(format!("Incomplete set for migration {}", index));
+            if !up_exists || !down_exists || !chk_exists {
+                return Err(format!("Incomplete set for migration {}", order));
             }
             let mut up_file = match File::open(&up_file_name) {
                 Ok(up_file) => up_file,
@@ -70,9 +93,9 @@ impl Migration {
                 Ok(_) => {},
                 Err(e) => return Err(format!("Failed to read {} to string: {}", chk_file_name, e)),
             };
-            migrations.push(Migration::new(index, up_script, down_script, chk_script));
-            index = index + 1;
+            migrations.push(Migration::new(index, order, up_script, down_script, chk_script));
         }
+        return Ok(migrations);
     }
 }
 

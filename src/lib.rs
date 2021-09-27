@@ -2,7 +2,6 @@ use rusqlite::{
     Connection,
     Transaction
 };
-use std::io::Read;
 use std::path::{
     Path,
     PathBuf

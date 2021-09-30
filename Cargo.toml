@@ -7,4 +7,6 @@ edition = "2018"
 rusqlite = { version = "0.25", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.8"
+worm = { path = "./worm" }
+worm_derive = { path = "./worm_derive" }
 

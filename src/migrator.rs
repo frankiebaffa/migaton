@@ -201,6 +201,12 @@ impl<'m> Migrator<'m> {
 mod migrator_tests {
     use crate::Migrator;
     use rusqlite::Connection;
+    use worm::DbContext;
+    use worm_derive::WormDb;
+    #[derive(WormDb)]
+    struct TestDb {
+        context: DbContext,
+    }
     #[test]
     fn t_file_up_down() {
         const DB_PATH: &'static str = "./";

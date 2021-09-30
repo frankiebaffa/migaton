@@ -191,18 +191,14 @@ impl<'m> Migrator<'m> {
         }
         return Ok(up_skips + down_skips);
     }
-    #[cfg(test)]
-    fn attach<'a>(c: &'a mut Connection, db_path: &'a str) -> &'a mut Connection {
-        c.execute(&format!("attach '{}' as Test", db_path), []).unwrap();
-        return c;
-    }
 }
 #[cfg(test)]
 mod migrator_tests {
-    use crate::Migrator;
-    use rusqlite::Connection;
-    use worm::DbContext;
-    use worm_derive::WormDb;
+    use {
+        crate::Migrator,
+        worm::DbContext,
+        worm_derive::WormDb,
+    };
     #[derive(WormDb)]
     struct TestDb {
         context: DbContext,
@@ -211,10 +207,18 @@ mod migrator_tests {
     fn t_file_up_down() {
         const DB_PATH: &'static str = "./";
         const DB_NAME: &'static str = "Test";
-        let mut mem_c = Connection::open("").unwrap();
-        Migrator::attach(&mut mem_c, ":memory:");
-        let mut c = Connection::open("").unwrap();
-        Migrator::attach(&mut c, "./Test.db");
+        let mut mem_testdb = TestDb::init();
+        match mem_testdb.context.attach_temp_dbs() {
+            Ok(_) => {},
+            Err(e) => panic!("{}", e),
+        }
+        let mut testdb = TestDb::init();
+        match testdb.context.attach_dbs() {
+            Ok(_) => {},
+            Err(e) => panic!("{}", e),
+        }
+        let mut mem_c = mem_testdb.context.use_connection();
+        let mut c = testdb.context.use_connection();
         let skips = match Migrator::do_both(&mut mem_c, &mut c, "./test_sql", DB_PATH, DB_NAME) {
             Ok(skips) => skips,
             Err(e) => {

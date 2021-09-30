@@ -208,15 +208,9 @@ mod migrator_tests {
         const DB_PATH: &'static str = "./";
         const DB_NAME: &'static str = "Test";
         let mut mem_testdb = TestDb::init();
-        match mem_testdb.context.attach_temp_dbs() {
-            Ok(_) => {},
-            Err(e) => panic!("{}", e),
-        }
+        mem_testdb.context.attach_temp_dbs();
         let mut testdb = TestDb::init();
-        match testdb.context.attach_dbs() {
-            Ok(_) => {},
-            Err(e) => panic!("{}", e),
-        }
+        testdb.context.attach_dbs();
         let mut mem_c = mem_testdb.context.use_connection();
         let mut c = testdb.context.use_connection();
         let skips = match Migrator::do_both(&mut mem_c, &mut c, "./test_sql", DB_PATH, DB_NAME) {

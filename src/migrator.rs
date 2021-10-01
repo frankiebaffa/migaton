@@ -200,6 +200,7 @@ mod migrator_tests {
         worm_derive::WormDb,
     };
     #[derive(WormDb)]
+    #[db(var(name="WORMDBS"))]
     struct TestDb {
         context: DbContext,
     }

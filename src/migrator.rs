@@ -36,11 +36,11 @@ impl<'m> Migrator<'m> {
             Ok(m) => m,
             Err(e) => return Err(e),
         };
-        let mut skips = match m.upward_migration(migrations_path) {
+        let mut skips = match m.upward_migration(migrations_path, true) {
             Ok(s) => s,
             Err(e) => return Err(e),
         };
-        skips = skips + match m.downward_migration(migrations_path) {
+        skips = skips + match m.downward_migration(migrations_path, true) {
             Ok(s) => s,
             Err(e) => return Err(e),
         };
@@ -60,7 +60,7 @@ impl<'m> Migrator<'m> {
             Ok(m) => m,
             Err(e) => return Err(e),
         };
-        return m.upward_migration(migrations_path);
+        return m.upward_migration(migrations_path, false);
     }
     /// Safely attempt to migrate downward. Migrates up and down on a SQLite in-memory database, then
     /// attempts to migrate downward on a copy of the DB file, then migrates the DB file
@@ -73,16 +73,16 @@ impl<'m> Migrator<'m> {
             Ok(m) => m,
             Err(e) => return Err(e),
         };
-        return m.downward_migration(migrations_path);
+        return m.downward_migration(migrations_path, false);
     }
     fn init(c: &'m mut Connection) -> Result<Migrator<'m>, String> {
         return Ok(Migrator { connection: c, skip_count: 0, });
     }
-    fn upward_migration<'b>(&mut self, mig_path: &'b str) -> Result<usize, String> {
-        return self.up(mig_path);
+    fn upward_migration<'b>(&mut self, mig_path: &'b str, is_test: bool) -> Result<usize, String> {
+        return self.migrate(MigrationDirection::Up, mig_path.to_string(), is_test);
     }
-    fn downward_migration<'b>(&mut self, mig_path: &'b str) -> Result<usize, String> {
-        return self.down(mig_path);
+    fn downward_migration<'b>(&mut self, mig_path: &'b str, is_test: bool) -> Result<usize, String> {
+        return self.migrate(MigrationDirection::Down, mig_path.to_string(), is_test);
     }
     /// Runs the passed Migration's check script
     fn query_chk(c: &Connection, m: &Migration) -> Result<i64, String> {
@@ -111,7 +111,20 @@ impl<'m> Migrator<'m> {
         };
     }
     /// Migrates the SQLite database in the given direction
-    fn migrate(&mut self, direction: MigrationDirection, mig_path: String) -> Result<usize, String> {
+    fn migrate(&mut self, direction: MigrationDirection, mig_path: String, is_test: bool) -> Result<usize, String> {
+        let run_verb = if is_test {
+            "Testing"
+        } else {
+            "Running"
+        };
+        let dir_str = match direction {
+            MigrationDirection::Up => {
+                "up"
+            },
+            MigrationDirection::Down => {
+                "down"
+            },
+        };
         let mut migrations = match Migration::get_all(mig_path) {
             Ok(migrations) => migrations,
             Err(e) => return Err(e),
@@ -141,7 +154,7 @@ impl<'m> Migrator<'m> {
                 println!("Skipping {}. Result {}", migration.file_name, passing_check);
                 continue;
             }
-            println!("Running '{}'", migration.file_name);
+            println!("{} {} '{}'", run_verb, dir_str, migration.file_name);
             let mut tx = match self.access_connection().transaction() {
                 Ok(tx) => tx,
                 Err(e) => return Err(format!("Failed to create transaction from connection: {}", e)),
@@ -157,14 +170,6 @@ impl<'m> Migrator<'m> {
         }
         return Ok(self.get_skip_count());
     }
-    /// Migrates the SQLite database upward
-    fn up<'b>(&mut self, mig_path: &'b str) -> Result<usize, String> {
-        return self.migrate(MigrationDirection::Up, mig_path.to_string());
-    }
-    /// Migrates the SQLite database downward
-    fn down<'b>(&mut self, mig_path: &'b str) -> Result<usize, String> {
-        return self.migrate(MigrationDirection::Down, mig_path.to_string());
-    }
     #[cfg(test)]
     fn do_both<'a>(mem_c: &mut Connection, c: &mut Connection, migrations_path: &'a str, db_path: &'a str, db_name: &'a str) -> Result<usize, String> {
         use std::fs::remove_file;
@@ -176,11 +181,11 @@ impl<'m> Migrator<'m> {
             Ok(m) => m,
             Err(e) => return Err(e),
         };
-        let up_skips = match m.upward_migration(migrations_path) {
+        let up_skips = match m.upward_migration(migrations_path, false) {
             Ok(up_skips) => up_skips,
             Err(e) => return Err(e),
         };
-        let down_skips = match m.downward_migration(migrations_path) {
+        let down_skips = match m.downward_migration(migrations_path, false) {
             Ok(down_skips) => down_skips,
             Err(e) => return Err(e),
         };

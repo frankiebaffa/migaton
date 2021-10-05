@@ -201,7 +201,7 @@ impl<'m> Migrator<'m> {
 mod migrator_tests {
     use {
         crate::Migrator,
-        worm::DbContext,
+        worm::{DbCtx, DbContext},
         worm_derive::WormDb,
     };
     #[derive(WormDb)]

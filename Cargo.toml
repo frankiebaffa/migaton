@@ -7,6 +7,6 @@ edition = "2018"
 rusqlite = { version = "0.25", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.8"
-worm = { git = "https://github.com/frankiebaffa/worm", branch = "implement_builder" }
-worm_derive = { git = "https://github.com/frankiebaffa/worm_derive", branch = "implement_builder" }
+worm = { git = "https://github.com/frankiebaffa/worm", branch = "master" }
+worm_derive = { git = "https://github.com/frankiebaffa/worm_derive", branch = "master" }
 

@@ -4,6 +4,64 @@ mod migrationdirection;
 use migrationdirection::MigrationDirection;
 mod migration;
 use migration::Migration;
+use rusqlite::Error as RusqliteError;
+use serde_yaml::Error as SerdeError;
+use std::io::Error as IOError;
+#[derive(Debug)]
+pub enum MigratorError {
+    IOError(IOError),
+    SerdeError(SerdeError),
+    SQLError(RusqliteError),
+    Error(String),
+}
+pub trait QuickMatch<T, U: std::error::Error>: Sized {
+    fn quick_match(self) -> Result<T, MigratorError>;
+}
+impl std::fmt::Display for MigratorError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            MigratorError::SQLError(e) => {
+                let msg = &format!("{}", e);
+                f.write_str(msg)
+            },
+            MigratorError::Error(s) => {
+                f.write_str(&s)
+            },
+            MigratorError::IOError(e) => {
+                let msg = &format!("{}", e);
+                f.write_str(msg)
+            },
+            MigratorError::SerdeError(e) => {
+                let msg = &format!("{}", e);
+                f.write_str(msg)
+            },
+        }
+    }
+}
+impl<T> QuickMatch<T, RusqliteError> for Result<T, RusqliteError> {
+    fn quick_match(self) -> Result<T, MigratorError> {
+        return match self {
+            Ok(t) => Ok(t),
+            Err(e) => Err(MigratorError::SQLError(e)),
+        };
+    }
+}
+impl<T> QuickMatch<T, IOError> for Result<T, IOError> {
+    fn quick_match(self) -> Result<T, MigratorError> {
+        return match self {
+            Ok(t) => Ok(t),
+            Err(e) => Err(MigratorError::IOError(e)),
+        };
+    }
+}
+impl<T> QuickMatch<T, SerdeError> for Result<T, SerdeError> {
+    fn quick_match(self) -> Result<T, MigratorError> {
+        return match self {
+            Ok(t) => Ok(t),
+            Err(e) => Err(MigratorError::SerdeError(e)),
+        };
+    }
+}
 /// A higher-level object to manage migration statuses
 pub struct Migrator<'m> {
     /// A connection to a SQLite database
@@ -31,72 +89,48 @@ impl<'m> Migrator<'m> {
         return self.skip_count.eq(&chk);
     }
     /// Migrate upwards and downwards on a database stored in memory (used for testing)
-    pub fn run_from_memory<'a>(c: &mut Connection, migrations_path: &'a str) -> Result<usize, String> {
-        let mut m = match Migrator::init(c) {
-            Ok(m) => m,
-            Err(e) => return Err(e),
-        };
-        let mut skips = match m.upward_migration(migrations_path, true) {
-            Ok(s) => s,
-            Err(e) => return Err(e),
-        };
-        skips = skips + match m.downward_migration(migrations_path, true) {
-            Ok(s) => s,
-            Err(e) => return Err(e),
-        };
+    pub fn run_from_memory<'a>(c: &mut Connection, migrations_path: &'a str) -> Result<usize, MigratorError> {
+        let mut m = Migrator::init(c)?;
+        let mut skips = m.upward_migration(migrations_path, true)?;
+        skips = skips + m.downward_migration(migrations_path, true)?;
         if skips > 0 {
-            return Err(format!("Memory skips should always be 0, returned {}", skips));
+            return Err(MigratorError::Error(format!("Memory skips should always be 0, returned {}", skips)));
         }
         return Ok(skips);
     }
     /// Safely attempt to migrate upward. Migrates up and down on a SQLite in-memory database, then
     /// attempts to migrate upward on a copy of the DB file, then migrates the DB file
-    pub fn do_up<'a>(mem_c: &mut Connection, c: &mut Connection, migrations_path: &'a str) -> Result<usize, String> {
-        match Migrator::run_from_memory(mem_c, migrations_path) {
-            Ok(_) => {},
-            Err(e) => return Err(e),
-        };
-        let mut m = match Migrator::init(c) {
-            Ok(m) => m,
-            Err(e) => return Err(e),
-        };
+    pub fn do_up<'a>(mem_c: &mut Connection, c: &mut Connection, migrations_path: &'a str) -> Result<usize, MigratorError> {
+        Migrator::run_from_memory(mem_c, migrations_path)?;
+        let mut m = Migrator::init(c)?;
         return m.upward_migration(migrations_path, false);
     }
     /// Safely attempt to migrate downward. Migrates up and down on a SQLite in-memory database, then
     /// attempts to migrate downward on a copy of the DB file, then migrates the DB file
-    pub fn do_down<'a>(mem_c: &mut Connection, c: &mut Connection, migrations_path: &'a str) -> Result<usize, String> {
-        match Migrator::run_from_memory(mem_c, migrations_path) {
-            Ok(_) => {},
-            Err(e) => return Err(e),
-        };
-        let mut m = match Migrator::init(c) {
-            Ok(m) => m,
-            Err(e) => return Err(e),
-        };
+    pub fn do_down<'a>(mem_c: &mut Connection, c: &mut Connection, migrations_path: &'a str) -> Result<usize, MigratorError> {
+        Migrator::run_from_memory(mem_c, migrations_path)?;
+        let mut m = Migrator::init(c)?;
         return m.downward_migration(migrations_path, false);
     }
-    fn init(c: &'m mut Connection) -> Result<Migrator<'m>, String> {
+    fn init(c: &'m mut Connection) -> Result<Migrator<'m>, MigratorError> {
         return Ok(Migrator { connection: c, skip_count: 0, });
     }
-    fn upward_migration<'b>(&mut self, mig_path: &'b str, is_test: bool) -> Result<usize, String> {
+    fn upward_migration<'b>(&mut self, mig_path: &'b str, is_test: bool) -> Result<usize, MigratorError> {
         return self.migrate(MigrationDirection::Up, mig_path.to_string(), is_test);
     }
-    fn downward_migration<'b>(&mut self, mig_path: &'b str, is_test: bool) -> Result<usize, String> {
+    fn downward_migration<'b>(&mut self, mig_path: &'b str, is_test: bool) -> Result<usize, MigratorError> {
         return self.migrate(MigrationDirection::Down, mig_path.to_string(), is_test);
     }
     /// Runs the passed Migration's check script
-    fn query_chk(c: &Connection, m: &Migration) -> Result<i64, String> {
-        let mut chk_stmt = match c.prepare(&m.check) {
-            Ok(stmt) => stmt,
-            Err(e) => return Err(format!("Failed to prepare statement: {}", e)),
-        };
+    fn query_chk(c: &Connection, m: &Migration) -> Result<i64, MigratorError> {
+        let mut chk_stmt = c.prepare(&m.check).quick_match()?;
         match chk_stmt.query_row([], |row| row.get(0)) {
             Ok(i) => return Ok(i),
-            Err(e) => return Err(format!("Failed to query rows from statement: {}", e)),
+            Err(e) => return Err(MigratorError::Error(format!("Failed to query rows from statement: {}", e))),
         };
     }
     /// Runs the applicable script of a Migration based on the direction
-    fn run_migration(t: &mut Transaction, m: &Migration, d: &MigrationDirection) -> Result<(), String> {
+    fn run_migration(t: &mut Transaction, m: &Migration, d: &MigrationDirection) -> Result<usize, MigratorError> {
         let s = match d {
             &MigrationDirection::Up => {
                 m.up.clone()
@@ -105,13 +139,10 @@ impl<'m> Migrator<'m> {
                 m.down.clone()
             },
         };
-        match t.execute(&s, []) {
-            Ok(_) => return Ok(()),
-            Err(e) => return Err(format!("Failed to execute script: {}", e)),
-        };
+        return t.execute(&s, []).quick_match();
     }
     /// Migrates the SQLite database in the given direction
-    fn migrate(&mut self, direction: MigrationDirection, mig_path: String, is_test: bool) -> Result<usize, String> {
+    fn migrate(&mut self, direction: MigrationDirection, mig_path: String, is_test: bool) -> Result<usize, MigratorError> {
         let run_verb = if is_test {
             "Testing"
         } else {
@@ -125,10 +156,7 @@ impl<'m> Migrator<'m> {
                 "down"
             },
         };
-        let mut migrations = match Migration::get_all(mig_path) {
-            Ok(migrations) => migrations,
-            Err(e) => return Err(e),
-        };
+        let mut migrations = Migration::get_all(mig_path)?;
         let passing_int: i64;
         if direction.eq(&MigrationDirection::Down) {
             migrations.sort_unstable_by(|x, y| y.number.cmp(&x.number));
@@ -138,10 +166,7 @@ impl<'m> Migrator<'m> {
             passing_int = 0;
         }
         for migration in migrations {
-            let passing_check = match Self::query_chk(&self.access_connection(), &migration) {
-                Ok(i) => i,
-                Err(e) => return Err(e),
-            };
+            let passing_check = Self::query_chk(&self.access_connection(), &migration)?;
             let do_run = if direction.eq(&MigrationDirection::Down) && passing_check.ge(&passing_int) {
                 true
             } else if direction.eq(&MigrationDirection::Up) && passing_check.eq(&passing_int) {
@@ -155,45 +180,21 @@ impl<'m> Migrator<'m> {
                 continue;
             }
             println!("{} {} '{}'", run_verb, dir_str, migration.file_name);
-            let mut tx = match self.access_connection().transaction() {
-                Ok(tx) => tx,
-                Err(e) => return Err(format!("Failed to create transaction from connection: {}", e)),
-            };
-            match Self::run_migration(&mut tx, &migration, &direction) {
-                Ok(_) => {},
-                Err(e) => return Err(e),
-            }
-            match tx.commit() {
-                Ok(_) => continue,
-                Err(e) => return Err(format!("Failed to commit transaction: {}", e)),
-            }
+            let mut tx = self.access_connection().transaction().quick_match()?;
+            Self::run_migration(&mut tx, &migration, &direction)?;
+            tx.commit().quick_match()?;
         }
         return Ok(self.get_skip_count());
     }
     #[cfg(test)]
-    fn do_both<'a>(mem_c: &mut Connection, c: &mut Connection, migrations_path: &'a str, db_path: &'a str, db_name: &'a str) -> Result<usize, String> {
+    fn do_both<'a>(mem_c: &mut Connection, c: &mut Connection, migrations_path: &'a str, db_path: &'a str, db_name: &'a str) -> Result<usize, MigratorError> {
         use std::fs::remove_file;
-        match Migrator::run_from_memory(mem_c, migrations_path) {
-            Ok(_) => {},
-            Err(e) => return Err(e),
-        };
-        let mut m = match Migrator::init(c) {
-            Ok(m) => m,
-            Err(e) => return Err(e),
-        };
-        let up_skips = match m.upward_migration(migrations_path, false) {
-            Ok(up_skips) => up_skips,
-            Err(e) => return Err(e),
-        };
-        let down_skips = match m.downward_migration(migrations_path, false) {
-            Ok(down_skips) => down_skips,
-            Err(e) => return Err(e),
-        };
+        Migrator::run_from_memory(mem_c, migrations_path)?;
+        let mut m = Migrator::init(c)?;
+        let up_skips = m.upward_migration(migrations_path, false)?;
+        let down_skips = m.downward_migration(migrations_path, false)?;
         m.close();
-        match remove_file(&format!("{}/{}.db", db_path, db_name)) {
-            Ok(_) => {},
-            Err(e) => panic!("{}", e),
-        }
+        remove_file(&format!("{}/{}.db", db_path, db_name)).quick_match()?;
         return Ok(up_skips + down_skips);
     }
 }

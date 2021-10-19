@@ -16,6 +16,10 @@ pub mod traits {
         fn get_mig_path() -> &'static str;
     }
     pub trait DoMigrations: Migrations {
+        fn migrate_up(mem_db: &mut impl DbCtx, db: &mut impl DbCtx) -> usize;
+        fn migrate_down(mem_db: &mut impl DbCtx, db: &mut impl DbCtx) -> usize;
+    }
+    impl<T> DoMigrations for T where T: Migrations {
         fn migrate_up(mem_db: &mut impl DbCtx, db: &mut impl DbCtx) -> usize {
             let mut mem_c = mem_db.use_connection();
             let mut c = db.use_connection();

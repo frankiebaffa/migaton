@@ -124,7 +124,12 @@ impl<'m> Migrator<'m> {
     /// Runs the passed Migration's check script
     fn query_chk(c: &Connection, m: &Migration) -> Result<i64, MigratorError> {
         let mut chk_stmt = c.prepare(&m.check).quick_match()?;
-        return chk_stmt.query_row([], |row| row.get(0)).quick_match();
+        // TODO: change this back to a quick match.
+        // returning 0 on error due to a bug in another program, checking how this works
+        return match chk_stmt.query_row([], |row| row.get(0)) {
+            Ok(i) => Ok(i),
+            Err(_) => Ok(0),
+        };
     }
     /// Runs the applicable script of a Migration based on the direction
     fn run_migration(t: &mut Transaction, m: &Migration, d: &MigrationDirection) -> Result<usize, MigratorError> {

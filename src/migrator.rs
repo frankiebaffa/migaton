@@ -86,7 +86,6 @@ impl<'m> Migrator<'m> {
     }
     /// Runs the passed Migration's check script
     fn query_chk(c: &Connection, m: &Migration) -> Result<i64, String> {
-        println!("{}", &m.check);
         let mut chk_stmt = match c.prepare(&m.check) {
             Ok(stmt) => stmt,
             Err(e) => return Err(format!("Failed to prepare statement: {}", e)),

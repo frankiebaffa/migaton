@@ -124,10 +124,7 @@ impl<'m> Migrator<'m> {
     /// Runs the passed Migration's check script
     fn query_chk(c: &Connection, m: &Migration) -> Result<i64, MigratorError> {
         let mut chk_stmt = c.prepare(&m.check).quick_match()?;
-        match chk_stmt.query_row([], |row| row.get(0)) {
-            Ok(i) => return Ok(i),
-            Err(e) => return Err(MigratorError::Error(format!("Failed to query rows from statement: {}", e))),
-        };
+        return chk_stmt.query_row([], |row| row.get(0)).quick_match();
     }
     /// Runs the applicable script of a Migration based on the direction
     fn run_migration(t: &mut Transaction, m: &Migration, d: &MigrationDirection) -> Result<usize, MigratorError> {

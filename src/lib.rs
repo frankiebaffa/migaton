@@ -10,7 +10,7 @@ use std::fs::File;
 mod migrator;
 pub use migrator::Migrator;
 pub mod traits {
-    use worm::DbCtx;
+    use worm::core::DbCtx;
     use crate::migrator::Migrator;
     pub trait Migrations {
         fn get_mig_path() -> &'static str;

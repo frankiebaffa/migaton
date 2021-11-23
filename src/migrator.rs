@@ -1,12 +1,16 @@
-use super::Connection;
-use super::Transaction;
 mod migrationdirection;
-use migrationdirection::MigrationDirection;
 mod migration;
-use migration::Migration;
-use rusqlite::Error as RusqliteError;
-use serde_yaml::Error as SerdeError;
-use std::io::Error as IOError;
+use {
+    crate::{
+        Connection,
+        Transaction,
+    },
+    migrationdirection::MigrationDirection,
+    migration::Migration,
+    rusqlite::Error as RusqliteError,
+    serde_yaml::Error as SerdeError,
+    std::io::Error as IOError,
+};
 #[derive(Debug)]
 pub enum MigratorError {
     IOError(IOError),
@@ -204,8 +208,8 @@ impl<'m> Migrator<'m> {
 mod migrator_tests {
     use {
         crate::Migrator,
-        worm::{DbCtx, DbContext},
-        worm_derive::WormDb,
+        worm::core::{DbCtx, DbContext},
+        worm::derive::WormDb,
     };
     #[derive(WormDb)]
     #[db(var(name="WORMDBS"))]

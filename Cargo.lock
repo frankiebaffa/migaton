@@ -377,7 +377,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "worm"
 version = "0.1.0"
-source = "git+https://github.com/frankiebaffa/worm?branch=master#5be615e630ef871b1f8bf25080ea18b32e0a29a5"
+source = "git+https://github.com/frankiebaffa/worm?branch=master#16a99552dfc322db554827e52c6ef51340d913fa"
 dependencies = [
  "worm_core 0.1.1 (git+https://github.com/frankiebaffa/worm_core?branch=master)",
  "worm_derive",
@@ -386,7 +386,7 @@ dependencies = [
 [[package]]
 name = "worm_core"
 version = "0.1.1"
-source = "git+https://github.com/frankiebaffa/worm_core?branch=master#636ab9227cac6c493f9e4affcb34a0fd459bcbb5"
+source = "git+https://github.com/frankiebaffa/worm_core?branch=master#b8d2f0208a6e23c47550bc1f0b975d1668ad320f"
 dependencies = [
  "rusqlite",
 ]
@@ -394,7 +394,7 @@ dependencies = [
 [[package]]
 name = "worm_core"
 version = "0.1.1"
-source = "git+https://github.com/frankiebaffa/worm_core#636ab9227cac6c493f9e4affcb34a0fd459bcbb5"
+source = "git+https://github.com/frankiebaffa/worm_core#b8d2f0208a6e23c47550bc1f0b975d1668ad320f"
 dependencies = [
  "rusqlite",
 ]
@@ -402,7 +402,7 @@ dependencies = [
 [[package]]
 name = "worm_derive"
 version = "0.1.1"
-source = "git+https://github.com/frankiebaffa/worm_derive?branch=master#04d9179717e3e4674f2b0b315d4ba37708d1d5ea"
+source = "git+https://github.com/frankiebaffa/worm_derive?branch=master#02663e6726df1727d4e48e6d0a92c9bd0e50df8b"
 dependencies = [
  "darling",
  "dotenv",

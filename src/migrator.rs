@@ -1,15 +1,15 @@
 mod migrationdirection;
 mod migration;
 use {
-    crate::{
-        Connection,
-        Transaction,
-    },
     migrationdirection::MigrationDirection,
     migration::Migration,
-    rusqlite::Error as RusqliteError,
     serde_yaml::Error as SerdeError,
     std::io::Error as IOError,
+    worm::core::sql::{
+        Connection,
+        Error as RusqliteError,
+        Transaction,
+    },
 };
 #[derive(Debug)]
 pub enum MigratorError {

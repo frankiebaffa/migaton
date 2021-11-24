@@ -1,7 +1,3 @@
-use rusqlite::{
-    Connection,
-    Transaction
-};
 use std::path::{
     Path,
     PathBuf
@@ -10,8 +6,10 @@ use std::fs::File;
 mod migrator;
 pub use migrator::Migrator;
 pub mod traits {
-    use worm::core::DbCtx;
-    use crate::migrator::Migrator;
+    use {
+        crate::migrator::Migrator,
+        worm::core::DbCtx,
+    };
     pub trait Migrations {
         fn get_mig_path() -> &'static str;
     }

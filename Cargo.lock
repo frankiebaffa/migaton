@@ -378,7 +378,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "worm"
 version = "0.1.0"
-source = "git+https://github.com/frankiebaffa/worm?branch=master#c12ef5ffa3afbbddabcb633f441eb72801715303"
+source = "git+https://github.com/frankiebaffa/worm?branch=master#5be615e630ef871b1f8bf25080ea18b32e0a29a5"
 dependencies = [
  "worm_core 0.1.1 (git+https://github.com/frankiebaffa/worm_core?branch=master)",
  "worm_derive",
@@ -403,7 +403,7 @@ dependencies = [
 [[package]]
 name = "worm_derive"
 version = "0.1.1"
-source = "git+https://github.com/frankiebaffa/worm_derive?branch=master#f15754c867303a54e82f7dd1168af33b5698a5b0"
+source = "git+https://github.com/frankiebaffa/worm_derive?branch=master#3bb9a90a9f345b9165782851ce8263b1dc12aa95"
 dependencies = [
  "darling",
  "dotenv",

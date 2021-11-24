@@ -2,7 +2,7 @@
 name = "migaton"
 version = "0.1.0"
 authors = ["Frankie Baffa <frankie.baffa@gentryhealthservices.com>"]
-edition = "2018"
+edition = "2021"
 [dependencies]
 rusqlite = { version = "0.25", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }

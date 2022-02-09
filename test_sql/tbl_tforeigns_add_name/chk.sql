@@ -1,4 +1,5 @@
-select count(name)
-from Test.pragma_table_info('TForeigns')
-where name = 'Name'
-limit 1;
+select count(*)
+from Test.sqlite_master
+where name = 'TForeigns'
+and type = 'table'
+and sql like '%Name%';

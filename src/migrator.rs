@@ -136,7 +136,7 @@ impl<'m> Migrator<'m> {
         };
     }
     /// Runs the applicable script of a Migration based on the direction
-    fn run_migration(t: &mut Transaction, m: &Migration, d: &MigrationDirection) -> Result<usize, MigratorError> {
+    fn run_migration(t: &mut Transaction, m: &Migration, d: &MigrationDirection) -> Result<(), MigratorError> {
         let s = match d {
             &MigrationDirection::Up => {
                 m.up.clone()
@@ -145,7 +145,7 @@ impl<'m> Migrator<'m> {
                 m.down.clone()
             },
         };
-        return t.execute(&s, []).quick_match();
+        return t.execute_batch(&s).quick_match();
     }
     /// Migrates the SQLite database in the given direction
     fn migrate(&mut self, direction: MigrationDirection, mig_path: String, is_test: bool) -> Result<usize, MigratorError> {
@@ -182,7 +182,7 @@ impl<'m> Migrator<'m> {
             };
             if !do_run {
                 self.inc_skip_count();
-                println!("Skipping {}. Result {}", migration.file_name, passing_check);
+                println!("Skipping {} {}. Result {}", dir_str, migration.file_name, passing_check);
                 continue;
             }
             println!("{} {} '{}'", run_verb, dir_str, migration.file_name);
@@ -201,7 +201,7 @@ impl<'m> Migrator<'m> {
         let down_skips = m.downward_migration(migrations_path, false)?;
         m.close();
         remove_file(&format!("{}/{}.db", db_path, db_name)).quick_match()?;
-        return Ok(up_skips + down_skips);
+        Ok(up_skips + down_skips)
     }
 }
 #[cfg(test)]

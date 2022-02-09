@@ -2,4 +2,5 @@ ordering: [
   tbl_tests,
   tbl_tforeigns,
   tbl_tforeigns_add_name,
+  tbl_tforeigns_alter_name,
 ]

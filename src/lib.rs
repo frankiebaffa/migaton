@@ -1,8 +1,10 @@
-use std::path::{
-    Path,
-    PathBuf
+use std::{
+    fs::File,
+    path::{
+        Path,
+        PathBuf,
+    },
 };
-use std::fs::File;
 mod migrator;
 pub use migrator::Migrator;
 pub mod traits {
@@ -13,24 +15,27 @@ pub mod traits {
     pub trait Migrations {
         fn get_mig_path() -> &'static str;
     }
-    pub trait DoMigrations: Migrations {
-        fn migrate_up(mem_db: &mut impl DbCtx, db: &mut impl DbCtx) -> usize;
-        fn migrate_down(mem_db: &mut impl DbCtx, db: &mut impl DbCtx) -> usize;
+    pub trait DoMigrations<U>: Migrations
+    where
+        U: DbCtx
+    {
+        fn migrate_up() -> usize;
+        fn migrate_down() -> usize;
     }
-    impl<T> DoMigrations for T where T: Migrations {
-        fn migrate_up(mem_db: &mut impl DbCtx, db: &mut impl DbCtx) -> usize {
-            let mut mem_c = mem_db.use_connection();
-            let mut c = db.use_connection();
-            let skips = match Migrator::do_up(&mut mem_c, &mut c, Self::get_mig_path()) {
+    impl<T, U> DoMigrations<U> for T
+    where
+        T: Migrations,
+        U: DbCtx,
+    {
+        fn migrate_up() -> usize {
+            let skips = match Migrator::<U>::do_up(Self::get_mig_path()) {
                 Ok(res) => res,
                 Err(e) => panic!("{}", e),
             };
             return skips;
         }
-        fn migrate_down(mem_db: &mut impl DbCtx, db: &mut impl DbCtx) -> usize {
-            let mut mem_c = mem_db.use_connection();
-            let mut c = db.use_connection();
-            let skips = match Migrator::do_down(&mut mem_c, &mut c, Self::get_mig_path()) {
+        fn migrate_down() -> usize {
+            let skips = match Migrator::<U>::do_down(Self::get_mig_path()) {
                 Ok(res) => res,
                 Err(e) => panic!("{}", e),
             };

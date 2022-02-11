@@ -15,26 +15,32 @@ pub mod traits {
     pub trait Migrations {
         fn get_mig_path() -> &'static str;
     }
-    pub trait DoMigrations<U>: Migrations
-    where
-        U: DbCtx
-    {
-        fn migrate_up() -> usize;
-        fn migrate_down() -> usize;
+    pub trait DoMigrations: Migrations {
+        fn migrate_up<U>() -> usize
+        where
+            U: DbCtx;
+        fn migrate_down<U>() -> usize
+        where
+            U: DbCtx;
     }
-    impl<T, U> DoMigrations<U> for T
+    impl<T> DoMigrations for T
     where
         T: Migrations,
-        U: DbCtx,
     {
-        fn migrate_up() -> usize {
+        fn migrate_up<U>() -> usize
+        where
+            U: DbCtx
+        {
             let skips = match Migrator::<U>::do_up(Self::get_mig_path()) {
                 Ok(res) => res,
                 Err(e) => panic!("{}", e),
             };
             return skips;
         }
-        fn migrate_down() -> usize {
+        fn migrate_down<U>() -> usize
+        where
+            U: DbCtx
+        {
             let skips = match Migrator::<U>::do_down(Self::get_mig_path()) {
                 Ok(res) => res,
                 Err(e) => panic!("{}", e),

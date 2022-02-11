@@ -29,7 +29,10 @@ struct ConfigFile {
 }
 impl Migration {
     /// Creates a new migration
-    fn new<'a>(number: i64, file_name: String, up: String, down: String, check: String) -> Migration {
+    fn new<'a>(
+        number: i64, file_name: String, up: String, down: String,
+        check: String
+    ) -> Migration {
         return Migration { number, file_name, up, down, check, };
     }
     const UP_END: &'static str = "up.sql";

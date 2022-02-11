@@ -1,9 +1,10 @@
+use crate::migrator::migrateto::MigrateTo;
 /// A representation of the direction of a migration
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum MigrationDirection {
     /// An upward migration
-    Up,
+    Up(MigrateTo),
     /// A downward migration
-    Down,
+    Down(MigrateTo),
 }
 
